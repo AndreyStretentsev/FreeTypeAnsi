@@ -135,27 +135,44 @@ static uint32_t alpha_blend(uint8_t a, uint32_t fg_color, uint32_t bg_color) {
 
 static void draw_pixel_console(uint32_t x, uint32_t y, uint32_t color) {
     ansigraphic_ivector2_t xy;
-    xy.x = x;
+	ansigraphic_color_RGB_t rgb;
+	ansigraphic_color_RGB_set(
+		&rgb, 
+		FB_GET_RED_ARGB8888(color),
+		FB_GET_GREEN_ARGB8888(color),
+		FB_GET_BLUE_ARGB8888(color)
+	);
+    xy.x = x * 2;
     xy.y = y;
-	ansigraphic_pixelSetColor_RGB(g_text.display, &xy, &color, &color);
+	ansigraphic_pixelSetColor_RGB(g_text.display, &xy, &rgb, &rgb);
+	xy.x++;
+	ansigraphic_pixelSetColor_RGB(g_text.display, &xy, &rgb, &rgb);
 }
 
 static void draw_hline_console(uint32_t x, uint32_t y, uint32_t w, uint32_t color) {
 	ansigraphic_ivector2_t xy;
-    xy.x = x;
+	ansigraphic_color_RGB_t rgb;
+	uint32_t until = (x + w) * 2;
+	ansigraphic_color_RGB_set(
+		&rgb, 
+		FB_GET_RED_ARGB8888(color),
+		FB_GET_GREEN_ARGB8888(color),
+		FB_GET_BLUE_ARGB8888(color)
+	);
+    xy.x = x * 2;
     xy.y = y;
-    for (xy.x; xy.x < xy.x + w; xy.x++) {
-        ansigraphic_pixelSetColor_RGB(g_text.display, &xy, &color, &color);
+    for (xy.x; xy.x < until; xy.x++) {
+        ansigraphic_pixelSetColor_RGB(g_text.display, &xy, &rgb, &rgb);
     }
 }
 
-static void draw_pixel(uint32_t x, uint32_t y, uint32_t color) {
+// static void draw_pixel(uint32_t x, uint32_t y, uint32_t color) {
 
-}
+// }
 
-static void draw_hline(uint32_t x, uint32_t y, uint32_t w, uint32_t color) {
+// static void draw_hline(uint32_t x, uint32_t y, uint32_t w, uint32_t color) {
 
-}
+// }
 
 static void draw_glyph_opt(FT_BitmapGlyph glyph, uint32_t x, uint32_t y, 
 						   uint32_t fg, uint32_t bg) 
@@ -169,37 +186,25 @@ static void draw_glyph_opt(FT_BitmapGlyph glyph, uint32_t x, uint32_t y,
 	int32_t _x;
 	uint32_t color;
 
-	printf("draw opt\n");
-    printf("height = %d\n", glyph->bitmap.rows);
-    printf("width = %d\n", glyph->bitmap.width);
-
 	for (_y = 0; _y < glyph->bitmap.rows; ++_y) {
-        printf("y = %d\n", _y);
 		for (_x = 0; _x < glyph->bitmap.width; ++_x) {
-            printf("x = %d\n", _x);
 			alpha = glyph->bitmap.buffer[_y * glyph->bitmap.pitch + _x];
 			if (alpha) {
 				if (bl && (FB_GET_ALPHA_ARGB8888(bg) != 0xFF)) {
-					draw_hline(bxs, _y + y - glyph->top, bl, bg);
+					draw_hline_console(bxs, y + glyph->top - _y, bl, bg);
 					bl = 0;
 				}
 				if (alpha != 0xFF) {
 					if (fl) {
 						if (fl == 1) {
-							draw_pixel(fxs, _y + y - glyph->top, fg);
+							draw_pixel_console(fxs, y + glyph->top - _y, fg);
 						} else {
-							draw_hline(fxs, _y + y - glyph->top, fl, fg);
+							draw_hline_console(fxs, y + glyph->top - _y, fl, fg);
 						}
 						fl = 0;
 					}
-					if (FB_GET_ALPHA_ARGB8888(bg) == 0xFF) {
-						color = 0;
-						draw_pixel(_x + x + glyph->left, 
-							   	   _y + y - glyph->top, 
-							   	   alpha_blend(alpha, fg, color));
-					}
-					draw_pixel(_x + x + glyph->left, 
-							   _y + y - glyph->top, 
+					draw_pixel_console(_x + x + glyph->left, 
+							   y + glyph->top - _y, 
 							   alpha_blend(alpha, fg, bg));
 				} else {
 					if (fl == 0) {
@@ -210,7 +215,7 @@ static void draw_glyph_opt(FT_BitmapGlyph glyph, uint32_t x, uint32_t y,
 				continue;
 			} 
 			if (fl) {
-				draw_hline(fxs, _y + y - glyph->top, fl, fg);
+				draw_hline_console(fxs, y + glyph->top - _y, fl, fg);
 				fl = 0;
 			}
 			if (g_text.bg_fill == RENDER_BG_MINIMUM) {
@@ -224,10 +229,10 @@ static void draw_glyph_opt(FT_BitmapGlyph glyph, uint32_t x, uint32_t y,
 		}
 
 		if (fl) {
-			draw_hline(fxs, _y + y - glyph->top, fl, fg);
+			draw_hline_console(fxs, y + glyph->top - _y, fl, fg);
 			fl = 0;
 		} else if (bl) {
-			draw_hline(bxs, _y + y - glyph->top, bl, bg);
+			draw_hline_console(bxs, y + glyph->top - _y, bl, bg);
 			bl = 0;
 		}
 	}
@@ -246,11 +251,11 @@ static void draw_glyph(FT_BitmapGlyph glyph, uint32_t x, uint32_t y,
 		for (_x = 0; _x < glyph->bitmap.width; ++_x) {
 			alpha = glyph->bitmap.buffer[_y * glyph->bitmap.pitch + _x];
 			if (alpha) {
-				draw_pixel(_x + x + glyph->left, _y + y - glyph->top, 
+				draw_pixel_console(_x + x + glyph->left, _y + y - glyph->top, 
 						   alpha_blend(alpha, fg, bg));
 			} else if (g_text.bg_fill == RENDER_BG_MINIMUM) {
 				if (g_saved_state.drawn_bg_point.x <= (x + _x)) {
-					draw_pixel(_x + x + glyph->left, _y + y - glyph->top, bg);
+					draw_pixel_console(_x + x + glyph->left, _y + y - glyph->top, bg);
 				}
 			}
 		}
@@ -408,7 +413,7 @@ void font_render_text_line(const char *text)
 	memcpy(&init_pos, &g_text.curs, sizeof(init_pos));
 
 	image_type.face_id = &g_face_id;
-	image_type.width = g_text.size;
+	image_type.width = 0;
 	image_type.height = g_text.size;
 
 	abbox.xMax = abbox.yMax = LONG_MAX;
@@ -576,13 +581,13 @@ void font_render_text_line(const char *text)
 		if (g_text.bg_fill == RENDER_BG_BLOCK) {
 			if (g_flags.enable_optimized_drawing) {
 				for (int _y = bbox.yMin; _y <= bbox.yMax; _y++) {
-					draw_hline(bbox.xMin, _y, bbox.xMax - bbox.xMin, 
+					draw_hline_console(bbox.xMin, _y, bbox.xMax - bbox.xMin, 
 							   g_text.bg_color);
 				}
 			} else {
 				for (int _y = bbox.yMin; _y <= bbox.yMax; _y++) {
 					for (int _x = bbox.xMin; _x <= bbox.xMax; _x++) {
-						draw_pixel(_x, _y, g_text.bg_color);
+						draw_pixel_console(_x, _y, g_text.bg_color);
 					}
 				}
 			}
@@ -598,7 +603,7 @@ void font_render_text_line(const char *text)
 			glyph_index = FTC_CMapCache_Lookup(g_ftc_cmap_cache,
 											   &g_face_id,
 											   cmap_index,
-											   to_render[ind++]);
+											   to_render[ind]);
 			printf("index %d\n", glyph_index);
 			
 			error = FTC_ImageCache_Lookup(g_ftc_image_cache, 
