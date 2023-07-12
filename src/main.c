@@ -4,10 +4,10 @@
 #include <font_render.h>
 #include <ttf.h>
 
-#define DISPLAY_WIDTH 140
+#define DISPLAY_WIDTH 200
 #define DISPLAY_HEIGHT 60
 
-static const char g_tets_str[] = "BUSY";
+static const char g_tets_str[] = "From shit & sticks";
 
 static void *console_create_display(int width, int height) {
     ansigraphic_image_RGB_t *screen = 
@@ -25,13 +25,13 @@ int main() {
     struct text_settings *settings;
 	printf("draw frame\n");
 	settings = font_render_get_text_settings();
-	settings->align = ALIGN_MIDDLE_LEFT;
+	settings->align = ALIGN_MIDDLE_CENTER;
 	settings->bg_fill = RENDER_BG_NONE;
 	settings->bg_color = FB_MAKE_ARGB8888(0xFF, 0, 0, 0);
 	settings->fg_color = FB_MAKE_COLOR(0xFF, 0xFF, 0xFF);
-	settings->size = 44;
-	settings->curs.x = 15;
-	settings->curs.y = 0;
+	settings->size = 18;
+	settings->curs.x = DISPLAY_WIDTH / 2;
+	settings->curs.y = DISPLAY_HEIGHT / 2;
     settings->display = console_create_display(DISPLAY_WIDTH, DISPLAY_HEIGHT);
 
 	font_render_text_line(g_tets_str);
